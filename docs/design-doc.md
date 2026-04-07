@@ -518,7 +518,7 @@ audit_log
 Get a VaR number out of the system as fast as possible. No database, no registry, no versioning — just math and an API.
 
 - [x] P1a-T1: Project scaffolding (directory structure, pyproject.toml, dev dependencies, pytest config)
-- [ ] P1a-T2: Historical VaR model as a standalone Python module (implements `RiskModel` protocol)
+- [x] P1a-T2: Historical VaR model as a standalone Python module (implements `RiskModel` protocol)
 - [ ] P1a-T3: Minimal FastAPI endpoint — accepts inline portfolio + price data, returns VaR results
 - [ ] P1a-T4: Unit tests — VaR calculation against hand-computed expected values
 - [ ] P1a-T5: Seed data — sample equity prices (5-10 tickers, ~1 year daily closes) + sample portfolio (5 equity positions)
