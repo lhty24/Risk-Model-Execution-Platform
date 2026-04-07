@@ -60,8 +60,6 @@ Once approved, create the commit using a HEREDOC format:
 ```
 git commit -m "$(cat <<'EOF'
 <commit message here>
-
-Co-Authored-By: Claude Opus 4.6 <noreply@anthropic.com>
 EOF
 )"
 ```
@@ -80,8 +78,6 @@ gh pr create --title "<short PR title>" --body "$(cat <<'EOF'
 
 ## Test plan
 <how to verify the changes work>
-
-🤖 Generated with [Claude Code](https://claude.ai/code)
 EOF
 )"
 ```
