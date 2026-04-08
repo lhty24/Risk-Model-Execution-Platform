@@ -1,0 +1,7 @@
+[
+  {"ticker": "AAPL", "quantity": 150},
+  {"ticker": "MSFT", "quantity": 200},
+  {"ticker": "GOOGL", "quantity": 50},
+  {"ticker": "JPM",  "quantity": 300},
+  {"ticker": "XOM",  "quantity": 250}
+]
