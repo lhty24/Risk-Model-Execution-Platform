@@ -527,7 +527,7 @@ Get a VaR number out of the system as fast as possible. No database, no registry
 
 Wire the VaR model into the full MEX platform architecture.
 
-- [ ] P1b-T1: Docker Compose for PostgreSQL + Redis
+- [x] P1b-T1: Docker Compose for PostgreSQL + Redis
 - [ ] P1b-T2: Database schema + SQLAlchemy models + Alembic migrations
 - [ ] P1b-T3: Model Registry — upload model artifact, create versions, list models
 - [ ] P1b-T4: Market Data Service — upload and retrieve snapshots (equity prices, yield curves) with as-of-date resolution
