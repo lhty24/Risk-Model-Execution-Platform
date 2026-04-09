@@ -3,18 +3,30 @@
 from __future__ import annotations
 
 from datetime import date
+from typing import Annotated
+from uuid import UUID
 
-from fastapi import FastAPI, HTTPException
+from fastapi import Depends, FastAPI, HTTPException, UploadFile
+from sqlalchemy.orm import Session
 
 from src.api.schemas import (
+    CreateModelRequest,
+    ModelResponse,
+    ModelSummaryResponse,
+    ModelVersionResponse,
     TradeResultResponse,
     ReturnStatistics,
     VarAggregateResponse,
     VarRunRequest,
     VarRunResponse,
 )
+from src.db.config import get_session
+from src.db.models import ModelType
 from src.engine.protocols import MarketData, RunConfig, Trade
 from src.models.historical_var import HistoricalVarModel
+from src.registry import service as registry
+
+SessionDep = Annotated[Session, Depends(get_session)]
 
 app = FastAPI(title="Risk Model Execution Platform")
 
@@ -100,3 +112,85 @@ def run_var(request: VarRunRequest) -> VarRunResponse:
         aggregate=aggregate,
         errors=result.errors,
     )
+
+
+# --- Model Registry endpoints ---
+
+
+@app.post("/models", response_model=ModelResponse, status_code=201)
+def create_model(request: CreateModelRequest, session: SessionDep) -> ModelResponse:
+    """Register a new model in the registry."""
+    model = registry.create_model(
+        session,
+        name=request.name,
+        description=request.description,
+        model_type=request.model_type,
+        owner=request.owner,
+    )
+    return ModelResponse.model_validate(model)
+
+
+@app.get("/models", response_model=list[ModelSummaryResponse])
+def list_models(
+    session: SessionDep, model_type: ModelType | None = None
+) -> list[ModelSummaryResponse]:
+    """List all models, optionally filtered by type."""
+    models = registry.list_models(session, model_type=model_type)
+    return [
+        ModelSummaryResponse(
+            id=m.id,
+            name=m.name,
+            description=m.description,
+            model_type=m.model_type,
+            owner=m.owner,
+            created_at=m.created_at,
+            updated_at=m.updated_at,
+            version_count=len(m.versions),
+        )
+        for m in models
+    ]
+
+
+@app.get("/models/{model_id}", response_model=ModelResponse)
+def get_model(model_id: UUID, session: SessionDep) -> ModelResponse:
+    """Get a model by ID with all its versions."""
+    model = registry.get_model(session, model_id)
+    if model is None:
+        raise HTTPException(status_code=404, detail="Model not found")
+    return ModelResponse.model_validate(model)
+
+
+@app.post(
+    "/models/{model_id}/versions",
+    response_model=ModelVersionResponse,
+    status_code=201,
+)
+async def create_model_version(
+    model_id: UUID, file: UploadFile, session: SessionDep
+) -> ModelVersionResponse:
+    """Upload a new version artifact for an existing model."""
+    content = await file.read()
+    try:
+        version = registry.create_version(
+            session,
+            model_id=model_id,
+            artifact_bytes=content,
+            filename=file.filename or "model.py",
+        )
+    except LookupError:
+        raise HTTPException(status_code=404, detail="Model not found")
+    return ModelVersionResponse.model_validate(version)
+
+
+@app.get(
+    "/models/{model_id}/versions/{version_id}",
+    response_model=ModelVersionResponse,
+)
+def get_model_version(
+    model_id: UUID, version_id: UUID, session: SessionDep
+) -> ModelVersionResponse:
+    """Get a specific model version."""
+    version = registry.get_version(session, model_id=model_id, version_id=version_id)
+    if version is None:
+        raise HTTPException(status_code=404, detail="Model version not found")
+    return ModelVersionResponse.model_validate(version)
