@@ -2,7 +2,12 @@
 
 from __future__ import annotations
 
-from pydantic import BaseModel, Field
+import uuid
+from datetime import datetime
+
+from pydantic import BaseModel, ConfigDict, Field
+
+from src.db.models import GovernanceStatus, ModelType
 
 
 # --- Request models ---
@@ -64,3 +69,52 @@ class VarRunResponse(BaseModel):
     trade_results: list[TradeResultResponse] = Field(default_factory=list)
     aggregate: VarAggregateResponse | None = None
     errors: list[str] = Field(default_factory=list)
+
+
+# --- Model Registry schemas ---
+
+
+class CreateModelRequest(BaseModel):
+    name: str = Field(..., min_length=1, max_length=255)
+    description: str | None = None
+    model_type: ModelType
+    owner: str | None = None
+
+
+class ModelVersionResponse(BaseModel):
+    id: uuid.UUID
+    version_number: int
+    governance_status: GovernanceStatus
+    artifact_hash: str
+    input_schema: dict | None = None
+    output_schema: dict | None = None
+    created_at: datetime
+    status_changed_at: datetime | None = None
+
+    model_config = ConfigDict(from_attributes=True)
+
+
+class ModelResponse(BaseModel):
+    id: uuid.UUID
+    name: str
+    description: str | None = None
+    model_type: ModelType
+    owner: str | None = None
+    created_at: datetime
+    updated_at: datetime
+    versions: list[ModelVersionResponse] = Field(default_factory=list)
+
+    model_config = ConfigDict(from_attributes=True)
+
+
+class ModelSummaryResponse(BaseModel):
+    id: uuid.UUID
+    name: str
+    description: str | None = None
+    model_type: ModelType
+    owner: str | None = None
+    created_at: datetime
+    updated_at: datetime
+    version_count: int = 0
+
+    model_config = ConfigDict(from_attributes=True)
