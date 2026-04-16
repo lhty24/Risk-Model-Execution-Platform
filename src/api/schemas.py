@@ -3,11 +3,11 @@
 from __future__ import annotations
 
 import uuid
-from datetime import datetime
+from datetime import date, datetime
 
 from pydantic import BaseModel, ConfigDict, Field
 
-from src.db.models import GovernanceStatus, ModelType
+from src.db.models import GovernanceStatus, ModelType, SnapshotType
 
 
 # --- Request models ---
@@ -118,3 +118,22 @@ class ModelSummaryResponse(BaseModel):
     version_count: int = 0
 
     model_config = ConfigDict(from_attributes=True)
+
+
+# --- Market Data Snapshot schemas ---
+
+
+class SnapshotResponse(BaseModel):
+    id: uuid.UUID
+    snapshot_type: SnapshotType
+    as_of_date: date
+    description: str | None = None
+    data_hash: str
+    created_at: datetime
+    metadata_: dict | None = Field(None, alias="metadata_")
+
+    model_config = ConfigDict(from_attributes=True, populate_by_name=True)
+
+
+class SnapshotDetailResponse(SnapshotResponse):
+    data: dict
