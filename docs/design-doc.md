@@ -530,7 +530,7 @@ Wire the VaR model into the full MEX platform architecture.
 - [x] P1b-T1: Docker Compose for PostgreSQL + Redis
 - [x] P1b-T2: Database schema + SQLAlchemy models + Alembic migrations
 - [x] P1b-T3: Model Registry — upload model artifact, create versions, list models
-- [ ] P1b-T4: Market Data Service — upload and retrieve snapshots (equity prices, yield curves) with as-of-date resolution
+- [x] P1b-T4: Market Data Service — upload and retrieve snapshots (equity prices, yield curves) with as-of-date resolution
 - [ ] P1b-T5: Portfolio Store — create portfolios, add positions, retrieve
 - [ ] P1b-T6: Execution Engine — load model via `model_info()` compatibility check, bind inputs, execute, store results
 - [ ] P1b-T7: Run submission endpoint (synchronous execution) — full flow: resolve model + market data + portfolio → execute → persist results

@@ -6,7 +6,7 @@ from datetime import date
 from typing import Annotated
 from uuid import UUID
 
-from fastapi import Depends, FastAPI, HTTPException, UploadFile
+from fastapi import Depends, FastAPI, Form, HTTPException, UploadFile
 from sqlalchemy.orm import Session
 
 from src.api.schemas import (
@@ -14,6 +14,8 @@ from src.api.schemas import (
     ModelResponse,
     ModelSummaryResponse,
     ModelVersionResponse,
+    SnapshotDetailResponse,
+    SnapshotResponse,
     TradeResultResponse,
     ReturnStatistics,
     VarAggregateResponse,
@@ -21,8 +23,9 @@ from src.api.schemas import (
     VarRunResponse,
 )
 from src.db.config import get_session
-from src.db.models import ModelType
+from src.db.models import ModelType, SnapshotType
 from src.engine.protocols import MarketData, RunConfig, Trade
+from src.market_data import service as market_data
 from src.models.historical_var import HistoricalVarModel
 from src.registry import service as registry
 
@@ -194,3 +197,55 @@ def get_model_version(
     if version is None:
         raise HTTPException(status_code=404, detail="Model version not found")
     return ModelVersionResponse.model_validate(version)
+
+
+# --- Market Data endpoints ---
+
+
+@app.post("/market-data/snapshots", response_model=SnapshotResponse, status_code=201)
+async def upload_snapshot(
+    snapshot_type: SnapshotType = Form(...),
+    as_of_date: date = Form(...),
+    file: UploadFile = ...,
+    description: str | None = Form(None),
+    session: Session = Depends(get_session),
+) -> SnapshotResponse:
+    """Upload a market data snapshot."""
+    content = await file.read()
+    try:
+        snapshot = market_data.upload_snapshot(
+            session,
+            snapshot_type=snapshot_type,
+            as_of_date=as_of_date,
+            file_bytes=content,
+            filename=file.filename or "snapshot.csv",
+            description=description,
+        )
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc))
+    return SnapshotResponse.model_validate(snapshot)
+
+
+@app.get("/market-data/snapshots", response_model=list[SnapshotResponse])
+def list_snapshots(
+    session: SessionDep,
+    snapshot_type: SnapshotType | None = None,
+    as_of_date: date | None = None,
+) -> list[SnapshotResponse]:
+    """List market data snapshots, optionally filtered by type and/or date."""
+    snapshots = market_data.list_snapshots(
+        session, snapshot_type=snapshot_type, as_of_date=as_of_date
+    )
+    return [SnapshotResponse.model_validate(s) for s in snapshots]
+
+
+@app.get("/market-data/snapshots/{snapshot_id}", response_model=SnapshotDetailResponse)
+def get_snapshot_detail(
+    snapshot_id: UUID, session: SessionDep
+) -> SnapshotDetailResponse:
+    """Get a snapshot's metadata and parsed data."""
+    snapshot = market_data.get_snapshot(session, snapshot_id)
+    if snapshot is None:
+        raise HTTPException(status_code=404, detail="Snapshot not found")
+    data = market_data.load_snapshot_data(snapshot)
+    return SnapshotDetailResponse.model_validate({**snapshot.__dict__, "data": data})
